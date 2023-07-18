@@ -1,8 +1,15 @@
 const path = require('path');
+const filePath = path.resolve(__dirname, './someFile.js');
 const ts = require('typescript');
 const fs = require('fs');
 
-const listExportedFunctions = (filePath) => {
+const listExportedFunctions = (filePath, processedFiles = new Set()) => {
+  if (processedFiles.has(filePath)) {
+    return [];
+  }
+
+  processedFiles.add(filePath);
+
   const fileContent = fs.readFileSync(filePath, 'utf8');
   const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.ESNext, true);
   
