@@ -71,6 +71,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
       return analyzedFunction;
     }
     if(isExported){
+      // named export
       debugger
       const maybeExportedFunction = getAnalyzedFunction();
       if(maybeExportedFunction){
@@ -79,17 +80,31 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 
       return;
     } else if(isExportDeclaration){
-      node.exportClause?.elements.forEach(element => {
-        debugger
-        const isIdentifier = ts.isIdentifier(element.name);
-        if(isIdentifier){
-          exportedElements.push(element.name.escapedText);
+      // export element
+      if(node.exportClause){
+        node.exportClause?.elements.forEach(element => {
+          debugger
+          const isIdentifier = ts.isIdentifier(element.name);
+          if(isIdentifier){
+            exportedElements.push(element.name.escapedText);
+          }
+        });
+      } else if(node.moduleSpecifier){
+        // transitive export
+        const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
+        if(isStringLiteral){
+          const isExportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
+          const moduleListExportedFunctionsRes = listExportedFunctions(isExportedModuleSpecifierPath, processedFiles);
+          exportedFunctions.push(...moduleListExportedFunctionsRes.exportedFunctions);
+          exportedElements.push(...moduleListExportedFunctionsRes.exportedElements);
+          functions.push(...moduleListExportedFunctionsRes.functions);
         }
-      });
+      }
 
       return;
     }
     else {
+      // try finding functions
       const maybeFunction = getAnalyzedFunction();
       if(maybeFunction){
         functions.push(maybeFunction);
@@ -103,7 +118,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 }
 
 console.time('listExportedFunctions');
-const listExportedFunctionsRes = listExportedFunctions('./empty2.js');
+const listExportedFunctionsRes = listExportedFunctions('./empty4.js');
 console.timeEnd('listExportedFunctions');
 
 console.log('listExportedFunctionsRes',listExportedFunctionsRes);
