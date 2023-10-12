@@ -53,12 +53,8 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
           debugger
           const declarationInitializer = declaration.initializer;
           if(declarationInitializer){
-            const isFunctionDeclaration = ts.isFunctionDeclaration(declarationInitializer);
-            const isFunctionExpression = ts.isFunctionExpression(declarationInitializer);
-            const functionLike = ts.isFunctionLike(declarationInitializer);
-            const isArrowFunction = ts.isArrowFunction(declarationInitializer);
-            const isFunctionTypeNode = ts.isFunctionTypeNode(declarationInitializer);
-            if(isFunctionDeclaration || isFunctionExpression || isArrowFunction || isFunctionTypeNode || functionLike){
+            const isFunctionLike = ts.isFunctionLike(declarationInitializer);
+            if(isFunctionLike){
               exportedFunctions.push({
                 name: declaration.name.text,
                 numOfParams: declarationInitializer.parameters.length
