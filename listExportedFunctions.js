@@ -11,34 +11,61 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
   processedFiles.add(filePath);
 
   const fileContent = fs.readFileSync(filePath, 'utf8');
+  console.time('parse')
   const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.ESNext, true);
-  
+  console.timeEnd('parse')
+
   const exportedFunctions = [];
   ts.forEachChild(sourceFile, node => {
-      debugger
-    if (ts.isFunctionDeclaration(node) && (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0) {
-      exportedFunctions.push(node.name.text);
-    } else if (ts.isVariableStatement(node) && (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) !== 0) {
-      for (const declaration of node.declarationList.declarations) {
-        if (ts.isIdentifier(declaration.name)) {
-          exportedFunctions.push(declaration.name.text);
-        }
+    debugger
+    const combinedModifierFlags = ts.getCombinedModifierFlags(node);
+    const isExported = (combinedModifierFlags & ts.ModifierFlags.Export) !== 0;
+    const isFunctionDeclaration = ts.isFunctionDeclaration(node);
+    const isExportedFunctionDeclaration = isFunctionDeclaration && isExported;
+    const isVariableStatement = ts.isVariableStatement(node);
+    const isExportedVariableStatement = isVariableStatement && isExported;
+    const isExportDeclaration = ts.isExportDeclaration(node);
+    const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
+    if(node.exportClause){
+      const isNamedExports = ts.isNamedExports(node.exportClause);
+    }
+    if(node.name){
+      const isIdentifier = ts.isIdentifier(node.name);
+    }
+    if(node.moduleSpecifier){
+      const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
+      const isModuleSpecifier = ts.isModuleSpecifier(node.moduleSpecifier);
+      const isExportedModuleSpecifier = isModuleSpecifier && isStringLiteral;
+    }
+    // const isExportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
+    debugger
+    if(isExported){
+      if(isFunctionDeclaration){
+        console.log('here')
       }
-    } else if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) {
-      for (const element of node.exportClause.elements) {
-        if (ts.isIdentifier(element.name)) {
-          exportedFunctions.push(element.name.text);
-        }
+      else if(isVariableStatement){
+        console.log('here2')
+        node.declarationList.declarations.forEach(declaration => {
+          debugger
+          const declarationInitializer = declaration.initializer;
+          if(declarationInitializer){
+            const isFunctionDeclaration = ts.isFunctionDeclaration(declarationInitializer);
+            const isFunctionExpression = ts.isFunctionExpression(declarationInitializer);
+            const functionLike = ts.isFunctionLike(declarationInitializer);
+            const isArrowFunction = ts.isArrowFunction(declarationInitializer);
+            const isFunctionTypeNode = ts.isFunctionTypeNode(declarationInitializer);
+            if(isFunctionDeclaration || isFunctionExpression || isArrowFunction || isFunctionTypeNode || functionLike){
+              console.log(declaration.name.text)
+              exportedFunctions.push(declaration.name.text);
+            }
+          }
+        });
       }
-    } else if (ts.isExportDeclaration(node) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-        const moduleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
-            exportedFunctions.push(...listExportedFunctions(moduleSpecifierPath, processedFiles));
-        }
+    }
+   
   });
 
   return exportedFunctions;
 }
 
-export {
-    listExportedFunctions
-}
+console.log(listExportedFunctions('./empty2.js'))

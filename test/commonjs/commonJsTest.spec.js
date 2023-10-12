@@ -1,5 +1,5 @@
 const path = require('path');
-const { listExportedFunctions } = require('../listExportedFunctions');
+const { listExportedFunctions } = require('../../listExportedFunctions');
 
 describe('listExportedFunctions', () => {
     const sourceFile = path.resolve(__dirname, './someFile.js');
