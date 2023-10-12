@@ -103,5 +103,16 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 }
 
 console.time('listExportedFunctions');
-console.log(listExportedFunctions('./empty3.js'));
+const listExportedFunctionsRes = listExportedFunctions('./empty2.js');
 console.timeEnd('listExportedFunctions');
+
+console.log('listExportedFunctionsRes',listExportedFunctionsRes);
+listExportedFunctionsRes.exportedElements.forEach(exportedElement => {
+  const exportedFunctionIndex = listExportedFunctionsRes.functions.findIndex(func => func.name === exportedElement);
+  if(exportedFunctionIndex !== -1){
+    const exportedFunction = listExportedFunctionsRes.functions[exportedFunctionIndex];
+    return listExportedFunctionsRes.exportedFunctions.push(exportedFunction);
+  }
+});
+
+console.log('processed listExportedFunctionsRes',listExportedFunctionsRes);
