@@ -41,10 +41,14 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
     debugger
     if(isExported){
       if(isFunctionDeclaration){
-        console.log('here')
+        console.log('isFunctionDeclaration')
+        exportedFunctions.push({
+          name: node.name.escapedText,
+          numOfParams: node.parameters.length
+        });
       }
       else if(isVariableStatement){
-        console.log('here2')
+        console.log('isVariableStatement')
         node.declarationList.declarations.forEach(declaration => {
           debugger
           const declarationInitializer = declaration.initializer;
@@ -55,8 +59,10 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
             const isArrowFunction = ts.isArrowFunction(declarationInitializer);
             const isFunctionTypeNode = ts.isFunctionTypeNode(declarationInitializer);
             if(isFunctionDeclaration || isFunctionExpression || isArrowFunction || isFunctionTypeNode || functionLike){
-              console.log(declaration.name.text)
-              exportedFunctions.push(declaration.name.text);
+              exportedFunctions.push({
+                name: declaration.name.text,
+                numOfParams: declarationInitializer.parameters.length
+              });
             }
           }
         });
