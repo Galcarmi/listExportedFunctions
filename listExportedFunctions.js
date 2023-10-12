@@ -103,5 +103,5 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 }
 
 console.time('listExportedFunctions');
-console.log(listExportedFunctions('./empty2.js'));
+console.log(listExportedFunctions('./empty3.js'));
 console.timeEnd('listExportedFunctions');
