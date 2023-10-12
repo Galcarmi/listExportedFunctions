@@ -9,43 +9,47 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
   }
 
   processedFiles.add(filePath);
+  
+  const exportedFunctions = [];
+  const exportedElements = [];
+  const functions = [];
 
   const fileContent = fs.readFileSync(filePath, 'utf8');
   console.time('parse')
   const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.ESNext, true);
   console.timeEnd('parse')
 
-  const exportedFunctions = [];
   ts.forEachChild(sourceFile, node => {
     debugger
     const combinedModifierFlags = ts.getCombinedModifierFlags(node);
     const isExported = (combinedModifierFlags & ts.ModifierFlags.Export) !== 0;
     const isFunctionDeclaration = ts.isFunctionDeclaration(node);
-    const isExportedFunctionDeclaration = isFunctionDeclaration && isExported;
+    // const isExportedFunctionDeclaration = isFunctionDeclaration && isExported;
     const isVariableStatement = ts.isVariableStatement(node);
-    const isExportedVariableStatement = isVariableStatement && isExported;
-    const isExportDeclaration = ts.isExportDeclaration(node);
-    const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
-    if(node.exportClause){
-      const isNamedExports = ts.isNamedExports(node.exportClause);
-    }
-    if(node.name){
-      const isIdentifier = ts.isIdentifier(node.name);
-    }
-    if(node.moduleSpecifier){
-      const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-      const isModuleSpecifier = ts.isModuleSpecifier(node.moduleSpecifier);
-      const isExportedModuleSpecifier = isModuleSpecifier && isStringLiteral;
-    }
+    // const isExportedVariableStatement = isVariableStatement && isExported;
+    // const isExportDeclaration = ts.isExportDeclaration(node);
+    // const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
+    // if(node.exportClause){
+    //   const isNamedExports = ts.isNamedExports(node.exportClause);
+    // }
+    // if(node.name){
+    //   const isIdentifier = ts.isIdentifier(node.name);
+    // }
+    // if(node.moduleSpecifier){
+    //   const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
+    //   const isModuleSpecifier = ts.isModuleSpecifier(node.moduleSpecifier);
+    //   const isExportedModuleSpecifier = isModuleSpecifier && isStringLiteral;
+    // }
     // const isExportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
-    debugger
-    if(isExported){
+
+    const getAnalyzedFunction = () =>{
+      let analyzedFunction = null;
       if(isFunctionDeclaration){
         console.log('isFunctionDeclaration')
-        exportedFunctions.push({
+        analyzedFunction = {
           name: node.name.escapedText,
           numOfParams: node.parameters.length
-        });
+        };
       }
       else if(isVariableStatement){
         console.log('isVariableStatement')
@@ -55,19 +59,33 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
           if(declarationInitializer){
             const isFunctionLike = ts.isFunctionLike(declarationInitializer);
             if(isFunctionLike){
-              exportedFunctions.push({
-                name: declaration.name.text,
+              analyzedFunction = {
+                name: declaration.name.escapedText,
                 numOfParams: declarationInitializer.parameters.length
-              });
+              };
             }
           }
         });
       }
+
+      return analyzedFunction;
     }
-   
+
+    if(isExported){
+      debugger
+      const maybeExportedFunction = getAnalyzedFunction();
+      if(maybeExportedFunction){
+        exportedFunctions.push(maybeExportedFunction);
+      }
+    } else {
+      const maybeFunction = getAnalyzedFunction();
+      if(maybeFunction){
+        functions.push(maybeFunction);
+      }
+    }
   });
 
-  return exportedFunctions;
+  return {exportedFunctions, functions};
 }
 
 console.time('listExportedFunctions');
