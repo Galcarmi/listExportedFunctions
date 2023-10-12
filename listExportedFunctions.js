@@ -27,7 +27,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
     // const isExportedFunctionDeclaration = isFunctionDeclaration && isExported;
     const isVariableStatement = ts.isVariableStatement(node);
     // const isExportedVariableStatement = isVariableStatement && isExported;
-    // const isExportDeclaration = ts.isExportDeclaration(node);
+    const isExportDeclaration = ts.isExportDeclaration(node);
     // const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
     // if(node.exportClause){
     //   const isNamedExports = ts.isNamedExports(node.exportClause);
@@ -70,22 +70,36 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 
       return analyzedFunction;
     }
-
     if(isExported){
       debugger
       const maybeExportedFunction = getAnalyzedFunction();
       if(maybeExportedFunction){
         exportedFunctions.push(maybeExportedFunction);
       }
-    } else {
+
+      return;
+    } else if(isExportDeclaration){
+      node.exportClause?.elements.forEach(element => {
+        debugger
+        const isIdentifier = ts.isIdentifier(element.name);
+        if(isIdentifier){
+          exportedElements.push(element.name.escapedText);
+        }
+      });
+
+      return;
+    }
+    else {
       const maybeFunction = getAnalyzedFunction();
       if(maybeFunction){
         functions.push(maybeFunction);
       }
+
+      return;
     }
   });
 
-  return {exportedFunctions, functions};
+  return {exportedFunctions, exportedElements, functions};
 }
 
 console.time('listExportedFunctions');

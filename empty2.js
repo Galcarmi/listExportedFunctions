@@ -4,5 +4,5 @@ export const func5 = function(a,b,c){}
 const func6 = function(a,b,c,d){}
 
 export { 
-    func6 
+    func6,
 };
