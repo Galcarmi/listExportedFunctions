@@ -139,12 +139,12 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
       const exportedFunction = functions[exportedFunctionIndex];
       return exportedFunctions.push(exportedFunction);
     }
-debugger
+
     const importedElementIndex = importedElementsFromModule.findIndex(importedElement => importedElement.name === exportedElement);
     if(importedElementIndex !== -1){
       const importedElement = importedElementsFromModule[importedElementIndex];
       const moduleListExportedFunctionsRes = listExportedFunctions(importedElement.importedModuleSpecifierPath, processedFiles);
-      debugger
+
       const exportedFunctionIndex = moduleListExportedFunctionsRes.findIndex(func => func.name === importedElement.name);
       if(exportedFunctionIndex !== -1){
         const exportedFunction = moduleListExportedFunctionsRes[exportedFunctionIndex];
