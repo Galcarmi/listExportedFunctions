@@ -2,16 +2,15 @@ const path = require('path');
 const ts = require('typescript');
 const fs = require('fs');
 
-const listExportedFunctions = (filePath, processedFiles = new Set()) => {
+const listExportedFunctions = (filePath, processedFiles = new Map()) => {
   if (processedFiles.has(filePath)) {
-    return [];
+    console.log('already processed', filePath)
+    return processedFiles.get(filePath);
   }
-
-  processedFiles.add(filePath);
   
   const exportedFunctions = [];
   const exportedElements = [];
-  const exportedElementsFromModule = [];
+  const importedElementsFromModule = [];
   const functions = [];
 
   const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -28,6 +27,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
     const isVariableStatement = ts.isVariableStatement(node);
     // const isExportedVariableStatement = isVariableStatement && isExported;
     const isExportDeclaration = ts.isExportDeclaration(node);
+    const isImportDeclaration = ts.isImportDeclaration(node);
     // const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
     // if(node.exportClause){
     //   const isNamedExports = ts.isNamedExports(node.exportClause);
@@ -78,7 +78,26 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
       });
     }
 
-    if(isExported){
+    const forEachElementInImportClause = (fun) => {
+      node.importClause?.namedBindings?.elements.forEach(element => {
+        const isIdentifier = ts.isIdentifier(element.name);
+        if(isIdentifier){
+          fun(element);
+        }
+      });
+    }
+
+    if(isImportDeclaration){
+      debugger
+      const importedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
+      forEachElementInImportClause(element => {
+        importedElementsFromModule.push({
+          name: element.name.escapedText,
+          importedModuleSpecifierPath
+        });
+      })
+    }
+    else if(isExported){
       // named export
       debugger
       const maybeExportedFunction = getAnalyzedFunction();
@@ -129,6 +148,11 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
     }
   });
 
+  console.log('exportedElements', exportedElements);
+  console.log('importedElementsFromModule', importedElementsFromModule);
+  console.log('functions', functions);
+  console.log('exportedFunctions', exportedFunctions);
+
   exportedElements.forEach(exportedElement => {
     const exportedFunctionIndex = functions.findIndex(func => func.name === exportedElement);
     if(exportedFunctionIndex !== -1){
@@ -136,6 +160,8 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
       return exportedFunctions.push(exportedFunction);
     }
   });
+
+  processedFiles.set(filePath, exportedFunctions);
 
   return exportedFunctions;
 }
