@@ -19,7 +19,6 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
   console.timeEnd('parse')
 
   ts.forEachChild(sourceFile, node => {
-    debugger
     const combinedModifierFlags = ts.getCombinedModifierFlags(node);
     const isExported = (combinedModifierFlags & ts.ModifierFlags.Export) !== 0;
     const isFunctionDeclaration = ts.isFunctionDeclaration(node);
@@ -52,7 +51,6 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
       }
       else if(isVariableStatement){
         node.declarationList.declarations.forEach(declaration => {
-          debugger
           const declarationInitializer = declaration.initializer;
           if(declarationInitializer){
             const isFunctionLike = ts.isFunctionLike(declarationInitializer);
@@ -88,7 +86,6 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
     }
 
     if(isImportDeclaration){
-      debugger
       const importedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
       forEachElementInImportClause(element => {
         importedElementsFromModule.push({
@@ -99,7 +96,6 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
     }
     else if(isExported){
       // named export
-      debugger
       const maybeExportedFunction = getAnalyzedFunction();
       if(maybeExportedFunction){
         exportedFunctions.push(maybeExportedFunction);
@@ -123,7 +119,6 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
       }
       // export element
       if(node.exportClause){
-        debugger
         forEachElementInExportClause((element)=>{exportedElements.push(element.name.escapedText)})
       } else if(node.moduleSpecifier){
         // transitive export
@@ -148,16 +143,28 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
     }
   });
 
-  console.log('exportedElements', exportedElements);
-  console.log('importedElementsFromModule', importedElementsFromModule);
-  console.log('functions', functions);
-  console.log('exportedFunctions', exportedFunctions);
+  // console.log('exportedElements', exportedElements);
+  // console.log('importedElementsFromModule', importedElementsFromModule);
+  // console.log('functions', functions);
+  // console.log('exportedFunctions', exportedFunctions);
 
   exportedElements.forEach(exportedElement => {
     const exportedFunctionIndex = functions.findIndex(func => func.name === exportedElement);
     if(exportedFunctionIndex !== -1){
       const exportedFunction = functions[exportedFunctionIndex];
       return exportedFunctions.push(exportedFunction);
+    }
+debugger
+    const importedElementIndex = importedElementsFromModule.findIndex(importedElement => importedElement.name === exportedElement);
+    if(importedElementIndex !== -1){
+      const importedElement = importedElementsFromModule[importedElementIndex];
+      const moduleListExportedFunctionsRes = listExportedFunctions(importedElement.importedModuleSpecifierPath, processedFiles);
+      debugger
+      const exportedFunctionIndex = moduleListExportedFunctionsRes.findIndex(func => func.name === importedElement.name);
+      if(exportedFunctionIndex !== -1){
+        const exportedFunction = moduleListExportedFunctionsRes[exportedFunctionIndex];
+        exportedFunctions.push(exportedFunction);
+      }
     }
   });
 
