@@ -37,14 +37,11 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
     }
     const isExportDeclaration = ts.isExportDeclaration(node);
     const isImportDeclaration = ts.isImportDeclaration(node);
+    const isModuleSpecifierStringLiteral = (isExportDeclaration || isImportDeclaration) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier);
 
-    const getAnalyzedFunction = () =>{
+    const tryExtractFunctionFromNode = () =>{
       let analyzedFunction: FunctionDescription | null = null;
-      if (isFunctionDeclaration) {
-        if(!node.name){
-          return;
-        }
-        
+      if (isFunctionDeclaration && node.name) {
         analyzedFunction = {
           name: node.name.escapedText.toString(),
           numOfParams: node.parameters.length
@@ -52,14 +49,13 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
       }
       else if(isVariableStatement){
         node.declarationList.declarations.forEach(declaration => {
-          const declarationInitializer = declaration.initializer;
-          if(declarationInitializer){
-            const isFunctionLike = ts.isFunctionLike(declarationInitializer);
+          if(declaration.initializer){
+            const isFunctionLike = ts.isFunctionLike(declaration.initializer);
             const hasName = ts.isIdentifier(declaration.name);
             if(isFunctionLike && hasName){
               analyzedFunction = {
                 name: declaration.name.escapedText.toString(),
-                numOfParams: declarationInitializer.parameters.length
+                numOfParams: declaration.initializer.parameters.length
               };
             }
           }
@@ -107,12 +103,7 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
       });
     }
 
-    if (isImportDeclaration) {
-      const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-      if (!isStringLiteral) {
-        return;
-      }
-
+    if (isImportDeclaration && isModuleSpecifierStringLiteral) {
       const importedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
       forEachElementInImportClause(node, element => {
         importedElements.push({
@@ -122,44 +113,42 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
       })
     }
     else if(isExportedVariableOrFunction){
-      const maybeExportedFunction = getAnalyzedFunction();
+      const maybeExportedFunction = tryExtractFunctionFromNode();
       if(maybeExportedFunction){
         exportedFunctions.push(maybeExportedFunction);
       }
 
       return;
     } else if (isExportDeclaration) {
-      if(node.exportClause && node.moduleSpecifier){
-        const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-        if (isStringLiteral) {
+      // use case: export { func1, func2 } from 'some-module';
+      if(node.exportClause && isModuleSpecifierStringLiteral){
           const exportedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
           const moduleListExportedFunctionsRes = listExportedFunctions(exportedModuleSpecifierPath, processedFiles);
           forEachElementInExportClause(node, (element)=>{
-            const exportedFunctionIndex = moduleListExportedFunctionsRes.findIndex((func: FunctionDescription) => func.name === element.name.escapedText);
-            if(exportedFunctionIndex !== -1){
-              const exportedFunction = moduleListExportedFunctionsRes[exportedFunctionIndex];
+            const exportedFunction = moduleListExportedFunctionsRes.find((func: FunctionDescription) => func.name === element.name.escapedText);
+            if(exportedFunction){
               exportedFunctions.push(exportedFunction);
             }
           })
-        }
       }
-      if(node.exportClause){
+
+      if (node.exportClause) {
+        // use case: export { func1, func2 };
         forEachElementInExportClause(node, (element)=>{exportedElements.push(element.name.escapedText.toString())})
-      } else if(node.moduleSpecifier){
-        const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-        if(isStringLiteral){
+      } else if (isModuleSpecifierStringLiteral) {
+        // use case: export * from 'some-module';
           const exportedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
           const moduleListExportedFunctionsRes = listExportedFunctions(exportedModuleSpecifierPath, processedFiles);
           exportedFunctions.push(...moduleListExportedFunctionsRes);
-        }
       }
 
       return;
     }
     else {
-      const maybeFunction = getAnalyzedFunction();
-      if(maybeFunction){
-        functions.push(maybeFunction);
+      // use case: const func1 = () => {};
+      const extractedFunction = tryExtractFunctionFromNode();
+      if(extractedFunction){
+        functions.push(extractedFunction);
       }
 
       return;
@@ -167,20 +156,17 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
   });
 
   exportedElements.forEach(exportedElement => {
-    const exportedFunctionIndex = functions.findIndex(func => func.name === exportedElement);
-    if(exportedFunctionIndex !== -1){
-      const exportedFunction = functions[exportedFunctionIndex];
-      return exportedFunctions.push(exportedFunction);
+    const exportedFunction = functions.find((func: FunctionDescription) => func.name === exportedElement);
+    if(exportedFunction){
+      exportedFunctions.push(exportedFunction);
     }
 
-    const importedElementIndex = importedElements.findIndex(importedElement => importedElement.name === exportedElement);
-    if(importedElementIndex !== -1){
-      const importedElement = importedElements[importedElementIndex];
+    const importedElement = importedElements.find((importedElement: ImportedElement) => importedElement.name === exportedElement);
+    if(importedElement){
       const moduleListExportedFunctionsRes = listExportedFunctions(importedElement.importedModuleSpecifierPath, processedFiles);
 
-      const exportedFunctionIndex = moduleListExportedFunctionsRes.findIndex(func => func.name === importedElement.name);
-      if(exportedFunctionIndex !== -1){
-        const exportedFunction = moduleListExportedFunctionsRes[exportedFunctionIndex];
+      const exportedFunction = moduleListExportedFunctionsRes.find((func: FunctionDescription) => func.name === importedElement.name);
+      if(exportedFunction){
         exportedFunctions.push(exportedFunction);
       }
     }
