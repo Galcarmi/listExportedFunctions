@@ -88,13 +88,20 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
 
       return;
     } else if(isExportDeclaration){
-      // if(node.exportClause && node.moduleSpecifier){
-      //   const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-      //   if(isStringLiteral){
-      //     const exportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
-      //     const exported
-      //   }
-      // }
+      if(node.exportClause && node.moduleSpecifier){
+        const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
+        if(isStringLiteral){
+          const exportedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
+          const moduleListExportedFunctionsRes = listExportedFunctions(exportedModuleSpecifierPath, processedFiles);
+          forEachElementInExportClause((element)=>{
+            const exportedFunctionIndex = moduleListExportedFunctionsRes.findIndex(func => func.name === element.name.escapedText);
+            if(exportedFunctionIndex !== -1){
+              const exportedFunction = moduleListExportedFunctionsRes[exportedFunctionIndex];
+              return exportedFunctions.push(exportedFunction);
+            }
+          })
+        }
+      }
       // export element
       if(node.exportClause){
         debugger
@@ -103,7 +110,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
         // transitive export
         const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
         if(isStringLiteral){
-          const exportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
+          const exportedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
           const moduleListExportedFunctionsRes = listExportedFunctions(exportedModuleSpecifierPath, processedFiles);
           exportedFunctions.push(...moduleListExportedFunctionsRes);
         }
