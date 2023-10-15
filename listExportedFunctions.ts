@@ -12,21 +12,16 @@ interface ImportedElement {
   importedModuleSpecifierPath: string;
 }
 
-const listExportedFunctions = (filePath: string, processedFiles = new Map()) => {
-  if (processedFiles.has(filePath)) {
-    return processedFiles.get(filePath);
-  }
-  
+const analyzeFunctionsFromSourcefile = (filePath: string, processedFiles: Map<string, FunctionDescription[]>) => {
+  const fileContent = fs.readFileSync(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.ESNext, true);
+
   const exportedFunctions: FunctionDescription[] = [];
   const exportedElements: string[] = [];
   const importedElements: ImportedElement[] = [];
   const functions: FunctionDescription[] = [];
 
-  const fileContent = fs.readFileSync(filePath, 'utf8');
-  const sourceFile = ts.createSourceFile(filePath, fileContent, ts.ScriptTarget.ESNext, true);
-
   ts.forEachChild(sourceFile, (node: ts.Node) => {
-    debugger
     const isFunctionDeclaration = ts.isFunctionDeclaration(node);
     const isVariableStatement = ts.isVariableStatement(node);
     let isExportedVariableOrFunction = false;
@@ -104,6 +99,7 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
     }
 
     if (isImportDeclaration && isModuleSpecifierStringLiteral) {
+      // use case: import { func1, func2 } from 'some-module';
       const importedModuleSpecifierPath = require.resolve(path.resolve(path.dirname(filePath), node.moduleSpecifier.text));
       forEachElementInImportClause(node, element => {
         importedElements.push({
@@ -112,7 +108,9 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
         });
       })
     }
-    else if(isExportedVariableOrFunction){
+    else if (isExportedVariableOrFunction) {
+      // use case: export const func1 = () => {};
+      // or use case: export function func1() {};
       const maybeExportedFunction = tryExtractFunctionFromNode();
       if(maybeExportedFunction){
         exportedFunctions.push(maybeExportedFunction);
@@ -155,12 +153,29 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
     }
   });
 
-  exportedElements.forEach(exportedElement => {
-    const exportedFunction = functions.find((func: FunctionDescription) => func.name === exportedElement);
-    if(exportedFunction){
-      exportedFunctions.push(exportedFunction);
-    }
+  return {
+    functions,
+    exportedFunctions,
+    exportedElements,
+    importedElements
+  };
+}
 
+const listExportedFunctions = (filePath: string, processedFiles = new Map<string, FunctionDescription[]>()) => {
+  const { functions, exportedFunctions, exportedElements, importedElements } = analyzeFunctionsFromSourcefile(filePath, processedFiles);
+
+  const resolveExportedElementsInFunctions = (exportedElement: string, functions: FunctionDescription[]): boolean => {
+    const exportedFunction = functions.find((func: FunctionDescription) => func.name === exportedElement);
+      if(exportedFunction){
+        exportedFunctions.push(exportedFunction);
+
+        return true;
+      }
+    
+    return false;
+  }
+
+  const resolveExportedElementInImportDeclaration = (exportedElement: string) => {
     const importedElement = importedElements.find((importedElement: ImportedElement) => importedElement.name === exportedElement);
     if(importedElement){
       const moduleListExportedFunctionsRes = listExportedFunctions(importedElement.importedModuleSpecifierPath, processedFiles);
@@ -170,7 +185,16 @@ const listExportedFunctions = (filePath: string, processedFiles = new Map()) => 
         exportedFunctions.push(exportedFunction);
       }
     }
-  });
+  }
+
+  for (const exportedElement of exportedElements) {
+    const isResolved = resolveExportedElementsInFunctions(exportedElement, functions);
+    if(isResolved){
+      continue;
+    }
+
+    resolveExportedElementInImportDeclaration(exportedElement);
+  }
 
   processedFiles.set(filePath, exportedFunctions);
 
