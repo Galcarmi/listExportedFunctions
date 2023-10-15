@@ -22,24 +22,9 @@ const listExportedFunctions = (filePath, processedFiles = new Map()) => {
     const combinedModifierFlags = ts.getCombinedModifierFlags(node);
     const isExported = (combinedModifierFlags & ts.ModifierFlags.Export) !== 0;
     const isFunctionDeclaration = ts.isFunctionDeclaration(node);
-    // const isExportedFunctionDeclaration = isFunctionDeclaration && isExported;
     const isVariableStatement = ts.isVariableStatement(node);
-    // const isExportedVariableStatement = isVariableStatement && isExported;
     const isExportDeclaration = ts.isExportDeclaration(node);
     const isImportDeclaration = ts.isImportDeclaration(node);
-    // const isExportedExportDeclaration = isExportDeclaration && isNamedExports;
-    // if(node.exportClause){
-    //   const isNamedExports = ts.isNamedExports(node.exportClause);
-    // }
-    // if(node.name){
-    //   const isIdentifier = ts.isIdentifier(node.name);
-    // }
-    // if(node.moduleSpecifier){
-    //   const isStringLiteral = ts.isStringLiteral(node.moduleSpecifier);
-    //   const isModuleSpecifier = ts.isModuleSpecifier(node.moduleSpecifier);
-    //   const isExportedModuleSpecifier = isModuleSpecifier && isStringLiteral;
-    // }
-    // const isExportedModuleSpecifierPath = path.resolve(path.dirname(filePath), node.moduleSpecifier.text);
 
     const getAnalyzedFunction = () =>{
       let analyzedFunction = null;
