@@ -1,1 +1,0 @@
-export const func8 = (a) => {}

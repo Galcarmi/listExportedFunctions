@@ -1,0 +1,1 @@
+export { func8 } from './empty5'
