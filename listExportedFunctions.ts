@@ -24,12 +24,13 @@ const analyzeFunctionsFromSourcefile = (filePath: string, processedFiles: Map<st
   ts.forEachChild(sourceFile, (node: ts.Node) => {
     const isFunctionDeclaration = ts.isFunctionDeclaration(node);
     const isVariableStatement = ts.isVariableStatement(node);
-    let isExportedVariableOrFunction = false;
-    if (isFunctionDeclaration || isVariableStatement) {
-      isExportedVariableOrFunction = node.modifiers?.some(modifier => {
+    let isExportedVariableOrFunction =
+      (isFunctionDeclaration || isVariableStatement) &&
+      node.modifiers &&
+      node.modifiers?.some(modifier => {
         return modifier.kind === ts.SyntaxKind.ExportKeyword;
-      }) || false;
-    }
+      });
+
     const isExportDeclaration = ts.isExportDeclaration(node);
     const isImportDeclaration = ts.isImportDeclaration(node);
     const isModuleSpecifierStringLiteral = (isExportDeclaration || isImportDeclaration) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier);
