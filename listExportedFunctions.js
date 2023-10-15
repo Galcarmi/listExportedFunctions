@@ -73,7 +73,7 @@ const listExportedFunctions = (filePath, processedFiles = new Set()) => {
       node.exportClause?.elements.forEach(element => {
         const isIdentifier = ts.isIdentifier(element.name);
         if(isIdentifier){
-          fun(element.name.escapedText);
+          fun(element);
         }
       });
     }
