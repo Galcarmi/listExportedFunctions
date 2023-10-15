@@ -1,5 +1,5 @@
-const path = require('path');
-const { listExportedFunctions } = require('../listExportedFunctions');
+import path from 'path';
+import { listExportedFunctions } from '../listExportedFunctions';
 
 describe('listExportedFunctions', () => {
     it('should return exported functions in file', () => {

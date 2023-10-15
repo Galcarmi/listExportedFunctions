@@ -1,3 +1,1 @@
-module.exports = {
-    name: 'func7',
-}
+export const func30 = () => {}
