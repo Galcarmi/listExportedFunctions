@@ -1,5 +1,4 @@
 const path = require('path');
-const filePath = path.resolve(__dirname, './someFile.js');
 const ts = require('typescript');
 const fs = require('fs');
 

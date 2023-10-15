@@ -2,7 +2,7 @@ const path = require('path');
 const { listExportedFunctions } = require('../listExportedFunctions');
 
 describe('listExportedFunctions', () => {
-    const sourceFile = path.resolve(__dirname, './empty4.js');
+    const sourceFile = path.resolve(__dirname, './fixtures/empty4.js');
     it('should return exported functions', () => {
         const exportedFunctions = listExportedFunctions(sourceFile);
 
